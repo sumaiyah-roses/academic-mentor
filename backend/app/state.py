@@ -1,8 +1,7 @@
 """
-Very simple in-memory session store.
-Fine for a college project / demo. If you ever deploy this for real,
-swap this dict for Redis or a database — in-memory state disappears
-whenever the server restarts and won't work across multiple server processes.
+In-memory session store. Fine for a college project/demo — swap for
+Redis/Postgres if this ever needs to survive a server restart or run
+across multiple processes.
 """
 
 import uuid
@@ -13,11 +12,15 @@ SESSIONS: dict[str, dict] = {}
 def create_session() -> str:
     session_id = str(uuid.uuid4())
     SESSIONS[session_id] = {
-        "stage": "ideation",          # ideation -> planning -> documentation -> done
+        "stage": "ideation",  # ideation -> feasibility -> planning -> documentation
         "ideation_history": [],
+        "feasibility_history": [],
         "planning_history": [],
         "documentation_history": [],
         "idea_brief": None,
+        "related_work": None,       # raw dict: {"papers": [...], "repos": [...]}
+        "related_work_text": None,  # formatted Markdown, reused across stages
+        "feasibility_brief": None,
         "plan_brief": None,
         "doc_content": None,
     }

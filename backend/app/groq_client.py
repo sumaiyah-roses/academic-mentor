@@ -1,7 +1,6 @@
 """
-Thin wrapper around the Groq API for calling Llama 3.3 70B.
-Every agent goes through this single function so retries, model choice,
-and error handling live in one place instead of being copy-pasted.
+Thin wrapper around the Groq API. Every agent goes through this single
+function so retries, model choice, and error handling live in one place.
 """
 
 import os
@@ -19,6 +18,7 @@ if not _api_key:
 
 client = Groq(api_key=_api_key)
 
+# Groq deprecated llama-3.3-70b-versatile — this is their recommended replacement.
 MODEL_NAME = "openai/gpt-oss-120b"
 
 
@@ -28,14 +28,7 @@ def call_llm(
     temperature: float = 0.6,
     max_tokens: int = 1024,
 ) -> str:
-    """
-    system_prompt: instructions that define the agent's role/behavior
-    messages: list of {"role": "user"|"assistant", "content": "..."} — conversation so far
-    max_tokens: raise this for agents that need to produce long output (e.g. full documentation)
-    Returns the plain text reply.
-    """
     chat_messages = [{"role": "system", "content": system_prompt}] + messages
-
     response = client.chat.completions.create(
         model=MODEL_NAME,
         messages=chat_messages,

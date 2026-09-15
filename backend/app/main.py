@@ -4,12 +4,12 @@ from fastapi.responses import Response
 
 from app.models import ChatRequest, ChatResponse, FinalizeResponse, SessionResponse
 from app.state import create_session, get_session
-from app.agents import ideation_agent, planning_agent, documentation_agent
+from app.agents import ideation_agent, feasibility_agent, planning_agent, documentation_agent
+from app import rag
 from app.export import markdown_to_docx_bytes
 
 app = FastAPI(title="Multi-Agent Academic Project Mentor")
 
-# Allow the local React dev server to call this API.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -26,10 +26,7 @@ def new_session():
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(req: ChatRequest):
-    """
-    The orchestrator: routes the incoming message to whichever agent
-    owns the session's current stage, using that stage's own history.
-    """
+    """Orchestrator: routes the message to whichever agent owns the current stage."""
     try:
         session = get_session(req.session_id)
     except KeyError as e:
@@ -42,6 +39,13 @@ def chat(req: ChatRequest):
         reply = ideation_agent.chat(session["ideation_history"])
         session["ideation_history"].append({"role": "assistant", "content": reply})
 
+    elif stage == "feasibility":
+        session["feasibility_history"].append({"role": "user", "content": req.message})
+        reply = feasibility_agent.chat(
+            session["idea_brief"], session["related_work_text"], session["feasibility_history"]
+        )
+        session["feasibility_history"].append({"role": "assistant", "content": reply})
+
     elif stage == "planning":
         session["planning_history"].append({"role": "user", "content": req.message})
         reply = planning_agent.chat(session["idea_brief"], session["planning_history"])
@@ -50,7 +54,10 @@ def chat(req: ChatRequest):
     elif stage == "documentation":
         session["documentation_history"].append({"role": "user", "content": req.message})
         reply = documentation_agent.revise(
-            session["idea_brief"], session["plan_brief"], session["documentation_history"]
+            session["idea_brief"],
+            session["plan_brief"],
+            session["related_work_text"],
+            session["documentation_history"],
         )
         session["documentation_history"].append({"role": "assistant", "content": reply})
         session["doc_content"] = reply
@@ -63,20 +70,58 @@ def chat(req: ChatRequest):
 
 @app.post("/api/finalize-idea", response_model=FinalizeResponse)
 def finalize_idea(req: ChatRequest):
-    """Locks in the idea brief and advances the session to the planning stage."""
+    """
+    Step 1 -> Step 2 handoff: locks in the idea, runs a real search (Semantic
+    Scholar + GitHub) for related work, and immediately gets the Feasibility
+    Agent's first verdict — this is the RAG step.
+    """
     session = get_session(req.session_id)
     if session["stage"] != "ideation":
         raise HTTPException(status_code=400, detail="Session is not in the ideation stage")
 
-    brief = ideation_agent.summarize(session["ideation_history"])
-    session["idea_brief"] = brief
+    idea_brief = ideation_agent.summarize(session["ideation_history"])
+    session["idea_brief"] = idea_brief
+
+    query = rag.extract_search_query(idea_brief)
+    related = rag.gather_related_work(query)
+    related_text = rag.format_related_work(related)
+    session["related_work"] = related
+    session["related_work_text"] = related_text
+
+    verdict = feasibility_agent.initial_verdict(idea_brief, related_text)
+    auto_message = f"{related_text}\n\n---\n\n{verdict}"
+    session["feasibility_history"].append({"role": "assistant", "content": auto_message})
+
+    session["stage"] = "feasibility"
+    return FinalizeResponse(stage="feasibility", brief=idea_brief, auto_message=auto_message)
+
+
+@app.post("/api/finalize-feasibility", response_model=FinalizeResponse)
+def finalize_feasibility(req: ChatRequest):
+    """
+    Step 2 -> Step 3 handoff: only allowed once the Feasibility Agent's most
+    recent message actually contains the [APPROVED] token.
+    """
+    session = get_session(req.session_id)
+    if session["stage"] != "feasibility":
+        raise HTTPException(status_code=400, detail="Session is not in the feasibility stage")
+
+    history = session["feasibility_history"]
+    if not history or "[approved]" not in history[-1]["content"].lower():
+        raise HTTPException(
+            status_code=400,
+            detail="The Feasibility Agent hasn't approved this idea yet — keep refining "
+                   "(or adopt a suggested twist) until you get [APPROVED].",
+        )
+
+    session["feasibility_brief"] = history[-1]["content"]
     session["stage"] = "planning"
-    return FinalizeResponse(stage="planning", brief=brief)
+    return FinalizeResponse(stage="planning", brief=session["feasibility_brief"])
 
 
 @app.post("/api/finalize-plan", response_model=FinalizeResponse)
 def finalize_plan(req: ChatRequest):
-    """Locks in the plan brief, generates the first documentation draft, advances stage."""
+    """Step 3 -> Step 4 handoff: locks the plan, auto-generates the first documentation draft."""
     session = get_session(req.session_id)
     if session["stage"] != "planning":
         raise HTTPException(status_code=400, detail="Session is not in the planning stage")
@@ -84,7 +129,9 @@ def finalize_plan(req: ChatRequest):
     plan_brief = planning_agent.summarize(session["idea_brief"], session["planning_history"])
     session["plan_brief"] = plan_brief
 
-    doc = documentation_agent.generate(session["idea_brief"], plan_brief)
+    doc = documentation_agent.generate(
+        session["idea_brief"], plan_brief, session["related_work_text"]
+    )
     session["doc_content"] = doc
     session["documentation_history"].append({"role": "assistant", "content": doc})
 

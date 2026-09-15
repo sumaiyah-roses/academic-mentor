@@ -1,7 +1,8 @@
 """
 Converts the Documentation Agent's Markdown output into a .docx file.
-Handles headings, bullet lists, inline **bold**, and Markdown tables
-(rendered as real Word tables, not literal pipe characters).
+Handles headings, bullet lists, inline **bold**, Markdown tables (rendered
+as real Word tables), and skips horizontal-rule lines instead of printing
+them literally.
 """
 
 import io
@@ -13,7 +14,6 @@ BOLD_PATTERN = re.compile(r"(\*\*.+?\*\*)")
 
 
 def _add_inline_runs(paragraph, text: str):
-    """Splits text on **bold** markers and adds runs with correct formatting."""
     for chunk in BOLD_PATTERN.split(text):
         if not chunk:
             continue
@@ -32,7 +32,6 @@ def _tight_paragraph(doc, style=None):
 
 
 def _is_table_separator(line: str) -> bool:
-    # e.g. |---|:---:|---| or | --- | --- |
     return bool(re.match(r"^\|?[\s:|-]+\|?$", line)) and "-" in line
 
 
@@ -60,7 +59,6 @@ def _add_table(doc, rows: list[list[str]]):
 def markdown_to_docx_bytes(markdown_text: str, title: str = "Project Documentation") -> bytes:
     doc = Document()
 
-    # Tighten the default body style so paragraphs don't stack huge gaps.
     normal_style = doc.styles["Normal"]
     normal_style.paragraph_format.space_after = Pt(4)
     normal_style.paragraph_format.space_before = Pt(0)
@@ -73,29 +71,25 @@ def markdown_to_docx_bytes(markdown_text: str, title: str = "Project Documentati
     n = len(lines)
 
     while i < n:
-        raw_line = lines[i]
-        line = raw_line.rstrip()
+        line = lines[i].rstrip()
 
         if not line.strip():
             i += 1
             continue
 
-        # --- Horizontal rule (---, ***, ___) — skip, don't print literally ---
         if re.match(r"^(-{3,}|\*{3,}|_{3,})$", line.strip()):
             i += 1
             continue
 
-        # --- Table block detection ---
         if line.strip().startswith("|") and i + 1 < n and _is_table_separator(lines[i + 1].strip()):
             table_rows = [_parse_table_row(line)]
-            i += 2  # skip header + separator
+            i += 2
             while i < n and lines[i].strip().startswith("|"):
                 table_rows.append(_parse_table_row(lines[i]))
                 i += 1
             _add_table(doc, table_rows)
             continue
 
-        # --- Headings ---
         if line.startswith("### "):
             h = doc.add_heading(line[4:].strip(), level=3)
             h.paragraph_format.space_after = Pt(6)
@@ -105,13 +99,9 @@ def markdown_to_docx_bytes(markdown_text: str, title: str = "Project Documentati
         elif line.startswith("# "):
             h = doc.add_heading(line[2:].strip(), level=1)
             h.paragraph_format.space_after = Pt(8)
-
-        # --- Bullets ---
         elif line.strip().startswith(("- ", "* ")):
             p = _tight_paragraph(doc, style="List Bullet")
             _add_inline_runs(p, line.strip()[2:].strip())
-
-        # --- Plain paragraph ---
         else:
             p = _tight_paragraph(doc)
             _add_inline_runs(p, line.strip())

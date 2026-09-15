@@ -57,16 +57,6 @@ header h1 {
   border-color: #6c4fd6;
 }
 
-.readonly-banner {
-  background: #1f1a33;
-  border: 1px solid #3d2f6b;
-  color: #c9b6ff;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  margin-bottom: 10px;
-}
-
 .stage-pill.active {
   background: #2b2440;
   color: #c9b6ff;
@@ -77,6 +67,16 @@ header h1 {
   background: #1a2b22;
   color: #7fd6a0;
   border-color: #2f5c42;
+}
+
+.readonly-banner {
+  background: #1f1a33;
+  border: 1px solid #3d2f6b;
+  color: #c9b6ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 10px;
 }
 
 .chat-window {
@@ -111,9 +111,26 @@ header h1 {
   max-width: 85%;
   padding: 10px 14px;
   border-radius: 10px;
-  white-space: pre-wrap;
   line-height: 1.5;
   font-size: 14px;
+}
+
+.bubble.user {
+  align-self: flex-end;
+  background: #6c4fd6;
+  color: white;
+}
+
+.bubble.assistant {
+  align-self: flex-start;
+  background: #1f2129;
+  border: 1px solid #2a2c36;
+}
+
+.bubble-role {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-bottom: 3px;
 }
 
 .bubble-text {
@@ -146,24 +163,6 @@ header h1 {
 .bubble-text ol {
   margin: 6px 0;
   padding-left: 20px;
-}
-
-.bubble.user {
-  align-self: flex-end;
-  background: #6c4fd6;
-  color: white;
-}
-
-.bubble.assistant {
-  align-self: flex-start;
-  background: #1f2129;
-  border: 1px solid #2a2c36;
-}
-
-.bubble-role {
-  font-size: 11px;
-  opacity: 0.6;
-  margin-bottom: 3px;
 }
 
 .chat-input {

@@ -14,7 +14,7 @@ Rules:
 """
 
 SUMMARY_PROMPT = """Summarize the finalized project idea from this conversation into a compact,
-structured brief a planning agent can use. Use this exact format:
+structured brief. Use this exact format:
 
 Title: <short project title>
 Problem Statement: <2-3 sentences>

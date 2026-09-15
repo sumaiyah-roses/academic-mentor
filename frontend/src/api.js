@@ -34,6 +34,10 @@ export function finalizeIdea(sessionId) {
   return post("/api/finalize-idea", { session_id: sessionId, message: "" });
 }
 
+export function finalizeFeasibility(sessionId) {
+  return post("/api/finalize-feasibility", { session_id: sessionId, message: "" });
+}
+
 export function finalizePlan(sessionId) {
   return post("/api/finalize-plan", { session_id: sessionId, message: "" });
 }
