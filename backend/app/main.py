@@ -18,6 +18,17 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(RuntimeError)
+def runtime_error_handler(request, exc: RuntimeError):
+    """
+    Converts the friendly RuntimeErrors raised in groq_client.py (timeouts, 413s)
+    into a proper JSON error response instead of a raw 500/'Failed to fetch' on
+    the frontend with no explanation.
+    """
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+
 @app.post("/api/session", response_model=SessionResponse)
 def new_session():
     session_id = create_session()
@@ -57,7 +68,12 @@ def chat(req: ChatRequest):
             session["idea_brief"],
             session["plan_brief"],
             session["related_work_text"],
+<<<<<<< HEAD:backend/app/main.py
             session["documentation_history"],
+=======
+            session["doc_content"],
+            req.message,
+>>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/main.py
         )
         session["documentation_history"].append({"role": "assistant", "content": reply})
         session["doc_content"] = reply

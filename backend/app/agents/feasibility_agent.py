@@ -20,6 +20,14 @@ Your job:
 """
 
 
+<<<<<<< HEAD:backend/app/agents/feasibility_agent.py
+=======
+# The default of 1024 cut long table-style replies off mid-sentence. Input here is small
+# (brief + search results + short chat), so 2048 output stays well under the 8000 limit.
+FEASIBILITY_MAX_TOKENS = 2048
+
+
+>>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/agents/feasibility_agent.py
 def _context(idea_brief: str, related_work_text: str) -> str:
     return (
         SYSTEM_PROMPT
@@ -37,9 +45,17 @@ def initial_verdict(idea_brief: str, related_work_text: str) -> str:
             "content": "Please assess the feasibility and novelty of my idea against the related work listed above.",
         }
     ]
+<<<<<<< HEAD:backend/app/agents/feasibility_agent.py
     return call_llm(system, messages, temperature=0.4)
+=======
+    return call_llm(system, messages, temperature=0.4, max_tokens=FEASIBILITY_MAX_TOKENS)
+>>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/agents/feasibility_agent.py
 
 
 def chat(idea_brief: str, related_work_text: str, history: list[dict]) -> str:
     system = _context(idea_brief, related_work_text)
+<<<<<<< HEAD:backend/app/agents/feasibility_agent.py
     return call_llm(system, history, temperature=0.4)
+=======
+    return call_llm(system, history, temperature=0.4, max_tokens=FEASIBILITY_MAX_TOKENS)
+>>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/agents/feasibility_agent.py

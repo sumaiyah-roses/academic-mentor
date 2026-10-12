@@ -12,6 +12,11 @@ from docx.shared import Pt
 
 BOLD_PATTERN = re.compile(r"(\*\*.+?\*\*)")
 
+# Matches annotations like "(≈ 150 words)", "(~150 words)", "(150-200 words)".
+WORD_COUNT_PATTERN = re.compile(
+    r"\s*\(\s*[≈~]?\s*\d+(?:\s*[-–—]\s*\d+)?\s*words?\s*\)", re.IGNORECASE
+)
+
 
 def _add_inline_runs(paragraph, text: str):
     for chunk in BOLD_PATTERN.split(text):
@@ -71,7 +76,11 @@ def markdown_to_docx_bytes(markdown_text: str, title: str = "Project Documentati
     n = len(lines)
 
     while i < n:
+<<<<<<< HEAD:backend/app/export.py
         line = lines[i].rstrip()
+=======
+        line = WORD_COUNT_PATTERN.sub("", lines[i]).rstrip()
+>>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/export.py
 
         if not line.strip():
             i += 1
