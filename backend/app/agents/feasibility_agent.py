@@ -17,6 +17,8 @@ Your job:
    not just rejecting ideas.
 5. Re-evaluate fresh each time the student proposes a change; don't assume approval carries over
    unless the current idea actually clears the bar.
+6. Keep every reply under about 250 words. Do NOT use tables — use at most 5 short bullets or a few
+   short paragraphs. Name the overlapping titles briefly instead of building a comparison grid.
 """
 
 

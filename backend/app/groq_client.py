@@ -50,13 +50,24 @@ def _create(messages: list[dict], temperature: float, max_tokens: int):
         except APIStatusError as e:
             if e.status_code == 413:
                 raise RuntimeError(
-                    "The request was too large for Groq's free-tier rate limit "
-                    "(8000 tokens/request). Try a shorter message, or ask for a smaller edit."
+                    "This request (the conversation so far plus space reserved for the reply) exceeded "
+                    "Groq's free-tier limit of 8000 tokens. Try again; if it repeats, start a new "
+                    "session or ask for a smaller edit."
                 ) from e
             raise
 
 
 MAX_CONTINUATIONS = 2
+
+# Groq's free tier rejects any single request where (prompt tokens + max_tokens) > 8000.
+# Stay well under that, since our token estimate below is approximate.
+REQUEST_TOKEN_BUDGET = 6500
+MIN_CONTINUATION_ROOM = 300
+
+
+def _estimate_tokens(messages: list[dict]) -> int:
+    # Deliberately pessimistic (~3 chars/token): Markdown tables and symbols tokenise densely.
+    return sum(len(m["content"]) for m in messages) // 3 + 50
 
 
 def call_llm(
@@ -71,11 +82,12 @@ def call_llm(
     choice = response.choices[0]
     text = choice.message.content or ""
 
-    # Safety net: if the reply hit the token cap, ask the model to pick up where it stopped
-    # instead of handing the user a half-finished answer.
+    # Safety net: if the reply hit the token cap, ask the model to pick up where it stopped.
+    # Each continuation re-sends the partial reply, so it must fit the request budget —
+    # otherwise the retry itself would trigger the 413 "request too large" error.
     continuations = 0
+    cut_short = False
     while choice.finish_reason == "length" and continuations < MAX_CONTINUATIONS:
-        continuations += 1
         chat_messages_cont = chat_messages + [
             {"role": "assistant", "content": text},
             {
@@ -84,13 +96,23 @@ def call_llm(
                            "you already wrote and do not add a preamble.",
             },
         ]
-        response = _create(chat_messages_cont, temperature, max_tokens)
+        room = REQUEST_TOKEN_BUDGET - _estimate_tokens(chat_messages_cont)
+        if room < MIN_CONTINUATION_ROOM:
+            cut_short = True
+            break
+        continuations += 1
+        response = _create(chat_messages_cont, temperature, min(max_tokens, room))
         choice = response.choices[0]
         text += choice.message.content or ""
+
+    if choice.finish_reason == "length":
+        cut_short = True
 
     if not text.strip():
         raise RuntimeError(
             "The model returned an empty reply (its reasoning used up the token budget). "
             "Please resend your message."
         )
+    if cut_short:
+        text += "\n\n*(Reply was cut short by the free-tier size limit — type “continue” for the rest.)*"
     return text
