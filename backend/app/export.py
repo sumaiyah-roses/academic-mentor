@@ -76,11 +76,7 @@ def markdown_to_docx_bytes(markdown_text: str, title: str = "Project Documentati
     n = len(lines)
 
     while i < n:
-<<<<<<< HEAD:backend/app/export.py
-        line = lines[i].rstrip()
-=======
         line = WORD_COUNT_PATTERN.sub("", lines[i]).rstrip()
->>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/export.py
 
         if not line.strip():
             i += 1

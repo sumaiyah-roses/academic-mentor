@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
@@ -10,9 +12,15 @@ from app.export import markdown_to_docx_bytes
 
 app = FastAPI(title="Multi-Agent Academic Project Mentor")
 
+# Comma-separated list of frontend URLs allowed to call this API, e.g.
+# FRONTEND_ORIGINS=https://my-app.vercel.app. Localhost is always allowed for development.
+ALLOWED_ORIGINS = ["http://localhost:5173"] + [
+    o.strip().rstrip("/") for o in os.getenv("FRONTEND_ORIGINS", "").split(",") if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -68,12 +76,8 @@ def chat(req: ChatRequest):
             session["idea_brief"],
             session["plan_brief"],
             session["related_work_text"],
-<<<<<<< HEAD:backend/app/main.py
-            session["documentation_history"],
-=======
             session["doc_content"],
             req.message,
->>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/main.py
         )
         session["documentation_history"].append({"role": "assistant", "content": reply})
         session["doc_content"] = reply

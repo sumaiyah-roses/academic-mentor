@@ -14,13 +14,9 @@ Rules:
   outline (Introduction, Literature Review, Methodology, etc.) and calculate an approximate word
   count for each section based on the rubric's weighting — sections worth more marks should get
   proportionally more words. If no rubric is given, use a sensible default academic report
-<<<<<<< HEAD:backend/app/agents/planning_agent.py
-  structure and even word distribution.
-=======
   structure and even word distribution. Keep the TOTAL across all sections to roughly 1800-2000
   words — this is a hard practical constraint of the API generating the report in one request,
   not a suggestion, so scale every section's share down proportionally if a rubric implies more.
->>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/agents/planning_agent.py
 - Keep responses concise and practical. This is a chat — iterate based on the student's feedback.
 - Do not write the actual documentation content — that is a different agent's job. You only
   produce the outline and word-count targets, not the prose itself.

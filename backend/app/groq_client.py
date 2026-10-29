@@ -66,15 +66,6 @@ def call_llm(
     max_tokens: int = 1024,
 ) -> str:
     chat_messages = [{"role": "system", "content": system_prompt}] + messages
-<<<<<<< HEAD:backend/app/groq_client.py
-    response = client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=chat_messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-    return response.choices[0].message.content
-=======
 
     response = _create(chat_messages, temperature, max_tokens)
     choice = response.choices[0]
@@ -103,4 +94,3 @@ def call_llm(
             "Please resend your message."
         )
     return text
->>>>>>> 95add18 (Integrated feasibility agent):academic-mentor/backend/app/groq_client.py
